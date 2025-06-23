@@ -11,5 +11,5 @@ def show_session_metrics():
     col1, col2, col3 = st.columns(3)
     col1.metric("Monetary Risk Per Trade", f"£{monetary_risk:,.2f}")
     col2.metric("Max Open Risk (%)", f"{st.session_state.max_open_risk:.2f}%")
-    col3.metric("Max Exposure (%)", f"{st.session_state.max_exposure_pct:.2f}%")
+    col3.metric("Max Exposure (%)", f"{st.session_state.max_exposure:.2f}%")
     st.markdown("---")

@@ -24,5 +24,7 @@ render_trade_setup()
 save_snapshot({
     "balance": st.session_state.balance,
     "risk_percent": st.session_state.risk_percent,
-    "max_exposure_pct": st.session_state.max_exposure_pct
+    "max_open_risk": st.session_state.max_open_risk,
+    "max_exposure": st.session_state.max_exposure
 })
+

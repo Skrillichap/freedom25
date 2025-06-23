@@ -1,4 +1,6 @@
 import streamlit as st
+
+import layout.charts as charts
 from logic.logic import calculate_position_size
 from helpers.helpers import confidence_message
 
@@ -6,16 +8,18 @@ def session_config_panel():
     st.header("Step 1: Session Configuration")
     st.number_input("Account Balance (£)", key="balance", min_value=0.0, step=100.0, format="%.2f")
     st.number_input("Risk per Trade (%)", key="risk_percent", min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
-    st.number_input("Max Exposure (%)", key="max_exposure_pct", min_value=0.0, max_value=100.0, step=1.0, format="%.2f")
+    st.number_input("Max Open Risk (%)", key="max_open_risk", min_value=0.0, max_value=100.0, step=0.1, format="%.2f")
+    st.number_input("Max Exposure (%)", key="max_exposure", min_value=0.0, max_value=100.0, step=1.0, format="%.2f")
     st.markdown("---")
+
 
 def render_trade_setup():
     st.header("Step 2: Trade Setup")
 
     st.subheader("Trade Inputs")
     col1, col2 = st.columns(2)
-    entry = col1.number_input("Current Market Price", min_value=0.0, format="%.4f")
-    stop = col2.number_input("Planned Stop Loss", min_value=0.0, format="%.4f")
+    entry = col1.number_input("Target Market Price", min_value=0.0, format="%.4f")
+    stop = col2.number_input("Target Stop Loss", min_value=0.0, format="%.4f")
 
     contribution_pct = st.slider("Capital Allocation (% of balance)", 0, 25, 10, 1)
     st.caption(confidence_message(contribution_pct))
@@ -49,7 +53,7 @@ def render_trade_setup():
 
         total_exposure = sum(t["capital_used"] for t in st.session_state.open_trades)
         projected_exposure = total_exposure + capital_used
-        max_exposure = (st.session_state.max_exposure_pct / 100) * balance
+        max_exposure = (st.session_state.max_exposure/ 100) * balance
         exposure_pct = (projected_exposure / balance) * 100
 
         st.markdown("### 📈 Exposure Summary")
@@ -59,3 +63,9 @@ def render_trade_setup():
             st.error("❌ This trade would exceed your max allowed exposure.")
         elif contribution_pct > 20:
             st.warning("⚠️ This is above your soft confidence threshold (20%)")
+            
+        # --- R-Multiple Chart ---
+        st.markdown("### 📊 R-Multiple Analysis")
+
+        fig = charts.plot_r_multiple_analysis(st.session_state.prospective_trade, balance)
+        st.plotly_chart(fig, use_container_width=True)
