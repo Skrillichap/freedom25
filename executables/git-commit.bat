@@ -1,8 +1,7 @@
 @echo off
-cd /d %~dp0
+set /p msg="Enter commit message: "
 git add .
-git commit -m "Update from %COMPUTERNAME%"
-git add .
-git commit -m "Checkpoint: Added chart plotting and exposure logic"
+git commit -m "%msg%"
+echo.
+echo ✅ Commit complete. Use git-push.bat to push to GitHub.
 pause
-
