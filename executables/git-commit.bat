@@ -1,5 +1,7 @@
 @echo off
+cd /d %~dp0
+set /p msg="Enter commit message: "
 git add .
-git commit -m "Update project files"
+git commit -m "%msg%"
 git push origin main
 pause
