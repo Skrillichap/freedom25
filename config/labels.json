@@ -1,0 +1,5 @@
+{
+  "strategies": ["Breakout", "Pullback", "Range Bounce", "News Play", "Volatility Break", "Scalp"],
+  "moods": ["😐 Neutral", "😠 Angry", "😥 Sad", "🥱 Bored", "😀 Happy", "🙂 Calm", "🤑 Greedy", "😴 Tired", "😬 Nervous", "🤔 Experimental", "😎 Confident"],
+  "exit_reasons": ["Take Profit Hit", "Stop Loss Hit", "Trend Exit", "Manual Exit", "Signal Invalidation"]
+}
