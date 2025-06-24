@@ -10,7 +10,9 @@ def plot_r_multiple_analysis(trade_data, balance):
     direction = trade_data["direction"]
 
     r_values = list(trade.frange(1.0, 5.0, 0.2))
-    data = []
+    tp_values = []
+    profits = []
+    profit_pcts = []
 
     for r in r_values:
         if direction == "Long":
@@ -18,44 +20,54 @@ def plot_r_multiple_analysis(trade_data, balance):
         else:
             tp = entry - (r * sl_distance)
 
+        tp_values.append(round(tp, 4))
         profit = abs(tp - entry) * position_size
-        profit_pct = (profit / balance) * 100
-
-        data.append({
-            "R": r,
-            "TP": round(tp, 4),
-            "Profit": round(profit, 2),
-            "Profit %": round(profit_pct, 2)
-        })
+        profits.append(profit)
+        profit_pcts.append((profit / balance) * 100)
 
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
-        x=[d["R"] for d in data],
-        y=[d["Profit"] for d in data],
+        x=r_values,
+        y=profits,
+        mode="lines+markers",
         name="Profit (£)",
-        mode="lines+markers",
-        yaxis="y1",
-        hovertemplate="R: %{x}<br>Profit: £%{y:.2f}<extra></extra>"
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=[d["R"] for d in data],
-        y=[d["Profit %"] for d in data],
-        name="Profit (% Balance)",
-        mode="lines+markers",
-        yaxis="y2",
-        hovertemplate="R: %{x}<br>Profit: %{y:.2f}%<extra></extra>"
+        hovertemplate="R: %{x}<br>TP: %{customdata}<br>£%{y:.2f}<extra></extra>",
+        customdata=tp_values
     ))
 
     fig.update_layout(
-        title="📈 R-Multiple vs Profit",
-        xaxis=dict(title="R-Multiple"),
-        yaxis=dict(title="Profit (£)", side="left"),
-        yaxis2=dict(title="Profit (% Balance)", overlaying="y", side="right"),
-        margin=dict(l=40, r=40, t=40, b=40),
-        legend=dict(x=0.5, xanchor="center", orientation="h", y=-0.3),
-        height=400
+        title="📈 R-Multiple Analysis",
+        xaxis=dict(
+            title="R-Multiple",
+            tickmode='linear',
+            tick0=1,
+            dtick=0.5,
+            side="bottom"
+        ),
+        xaxis2=dict(
+            title="Take Profit (TP)",
+            overlaying="x",
+            side="top",
+            tickvals=r_values,
+            ticktext=[f"{tp:.2f}" for tp in tp_values],
+            showgrid=False
+        ),
+        yaxis=dict(
+            title="Profit (£)",
+            side="left"
+        ),
+        yaxis2=dict(
+            title="Profit (% Balance)",
+            overlaying="y",
+            side="right",
+            showgrid=False,
+            tickvals=profits,
+            ticktext=[f"{p:.2f}%" for p in profit_pcts]
+        ),
+        height=400,
+        margin=dict(t=40, b=40, l=40, r=40),
+        legend=dict(x=0.5, xanchor="center", y=-0.25, orientation="h")
     )
 
     return fig
