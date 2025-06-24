@@ -27,17 +27,28 @@ def plot_r_multiple_analysis(trade_data, balance):
 
     fig = go.Figure()
 
+    # Main Line (Dual Y-Axis Referenced)
     fig.add_trace(go.Scatter(
         x=r_values,
         y=profits,
         mode="lines+markers",
         name="Profit (£)",
-        hovertemplate="R: %{x}<br>TP: %{customdata}<br>£%{y:.2f}<extra></extra>",
-        customdata=tp_values
+        yaxis="y1",
+        hovertemplate=(
+            "R: %{x:.1f}<br>"
+            "TP: £%{customdata[0]:.2f}<br>"
+            "£ Profit: £%{y:.2f}<br>"
+            "Profit: %{customdata[1]:.2f}%<extra></extra>"
+        ),
+        customdata=list(zip(tp_values, profit_pcts))
     ))
 
+    # Layout with 4 Axes
     fig.update_layout(
         title="📈 R-Multiple Analysis",
+        height=400,
+        margin=dict(t=60, b=40, l=60, r=60),
+
         xaxis=dict(
             title="R-Multiple",
             tickmode='linear',
@@ -46,7 +57,7 @@ def plot_r_multiple_analysis(trade_data, balance):
             side="bottom"
         ),
         xaxis2=dict(
-            title="Take Profit (TP)",
+            title="Take Profit (£)",
             overlaying="x",
             side="top",
             tickvals=r_values,
@@ -65,9 +76,9 @@ def plot_r_multiple_analysis(trade_data, balance):
             tickvals=profits,
             ticktext=[f"{p:.2f}%" for p in profit_pcts]
         ),
-        height=400,
-        margin=dict(t=40, b=40, l=40, r=40),
-        legend=dict(x=0.5, xanchor="center", y=-0.25, orientation="h")
+        legend=dict(
+            x=0.5, xanchor="center", y=-0.3, orientation="h"
+        )
     )
 
     return fig
