@@ -1,6 +1,6 @@
 import streamlit as st
 from config.config import initialize_session_state, get_initial_session_state, save_snapshot
-from ui.ui import session_config_panel, render_trade_setup
+import ui.ui as ui
 from layout.layout import show_session_metrics
 
 # Init Streamlit session state
@@ -16,9 +16,11 @@ st.set_page_config(page_title="Freedom 25", layout="centered")
 st.title("🧮 Freedom 25 — Trade Journal")
 
 # UI rendering
-session_config_panel()
+ui.session_config_panel()
 show_session_metrics()
-render_trade_setup()
+ui.render_trade_setup()
+ui.render_trade_logger()
+
 
 # Save snapshot
 save_snapshot({
