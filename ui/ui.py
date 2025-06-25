@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit as st
 import layout.charts as charts
+import logic.trade as trade
 
 from datetime import datetime
 from logic.logic import calculate_position_size
@@ -73,33 +74,52 @@ def render_trade_setup():
         st.plotly_chart(fig, use_container_width=True)
 
 def render_trade_logger():
-    st.markdown("### 📝 Trade Journal Logging")
+    st.subheader("📥 Trade Logger")
 
-    if "trade_logged" not in st.session_state:
-        st.session_state.trade_logged = False
-    if "trade_decision" not in st.session_state:
-        st.session_state.trade_decision = None
+    if st.button("📥 Enter Trade"):
+        # Lock in the live values at the moment of click
+        live_data = st.session_state.prospective_trade.copy()
 
-    # Disable buttons after log
-    enter_disabled = st.session_state.trade_logged
-    missed_disabled = st.session_state.trade_logged
+        st.session_state.trade_log_snapshot = {
+            "contribution_pct": live_data.get("contribution_pct"),
+            "position_size": live_data.get("position_size"),
+            "capital_used": live_data.get("capital_used"),
+            "risk": live_data.get("risk")
+        }
 
-    col1, col2, col3 = st.columns([2, 2, 3])
+        st.session_state.trade_ready_to_log = True
+        st.success("Trade marked for logging. Input exact trade data below.")
 
-    with col1:
-        if st.button("📥 Enter Trade", use_container_width=True, disabled=enter_disabled):
-            st.session_state.trade_logged = True
-            st.session_state.trade_decision = "entered"
+    if st.session_state.get("trade_ready_to_log"):
+        col1, col2 = st.columns(2)
+        with col1:
+            actual_entry = st.number_input("📈 Actual Entry Price", format="%.4f")
+            actual_stop = st.number_input("📉 Actual Stop Loss", format="%.4f")
+        with col2:
+            target_tp = st.number_input("🎯 Target Take Profit", format="%.4f")
+            entry_time = st.text_input("🕒 Time of Entry (HH:MM)", value="09:30")
 
-    with col2:
-        if st.button("❌ Missed Trade", use_container_width=True, disabled=missed_disabled):
-            st.session_state.trade_logged = True
-            st.session_state.trade_decision = "missed"
+        confirm = st.button("✅ Confirm and Log Trade")
 
-    with col3:
-        st.time_input("🕒 Trade Time", value=datetime.now().time(), key="trade_time", disabled=st.session_state.trade_logged)
+        if confirm:
+            snapshot = st.session_state.trade_log_snapshot
 
-    if st.session_state.trade_logged:
-        decision = "ENTERED" if st.session_state.trade_decision == "entered" else "MISSED"
-        st.success(f"Trade marked as **{decision}** at {st.session_state.trade_time.strftime('%H:%M:%S')}")
+            trade_data = {
+                "entry_date": str(datetime.now().date()),
+                "entry_time": entry_time,
+                "actual_entry": actual_entry,
+                "actual_stop": actual_stop,
+                "target_tp": target_tp,
+                "contribution_pct": snapshot["contribution_pct"],
+                "position_size": snapshot["position_size"],
+                "capital_used": snapshot["capital_used"],
+                "risk": snapshot["risk"]
+            }
 
+            try:
+                trade.log_trade_entry(trade_data)
+                st.success("✅ Trade logged successfully.")
+                st.session_state.trade_ready_to_log = False
+                del st.session_state.trade_log_snapshot
+            except Exception as e:
+                st.error(f"❌ Failed to log trade: {e}")
