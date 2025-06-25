@@ -1,6 +1,8 @@
 import streamlit as st
-
+import streamlit as st
 import layout.charts as charts
+
+from datetime import datetime
 from logic.logic import calculate_position_size
 from helpers.helpers import confidence_message
 
@@ -69,3 +71,35 @@ def render_trade_setup():
 
         fig = charts.plot_r_multiple_analysis(st.session_state.prospective_trade, balance)
         st.plotly_chart(fig, use_container_width=True)
+
+def render_trade_logger():
+    st.markdown("### 📝 Trade Journal Logging")
+
+    if "trade_logged" not in st.session_state:
+        st.session_state.trade_logged = False
+    if "trade_decision" not in st.session_state:
+        st.session_state.trade_decision = None
+
+    # Disable buttons after log
+    enter_disabled = st.session_state.trade_logged
+    missed_disabled = st.session_state.trade_logged
+
+    col1, col2, col3 = st.columns([2, 2, 3])
+
+    with col1:
+        if st.button("📥 Enter Trade", use_container_width=True, disabled=enter_disabled):
+            st.session_state.trade_logged = True
+            st.session_state.trade_decision = "entered"
+
+    with col2:
+        if st.button("❌ Missed Trade", use_container_width=True, disabled=missed_disabled):
+            st.session_state.trade_logged = True
+            st.session_state.trade_decision = "missed"
+
+    with col3:
+        st.time_input("🕒 Trade Time", value=datetime.now().time(), key="trade_time", disabled=st.session_state.trade_logged)
+
+    if st.session_state.trade_logged:
+        decision = "ENTERED" if st.session_state.trade_decision == "entered" else "MISSED"
+        st.success(f"Trade marked as **{decision}** at {st.session_state.trade_time.strftime('%H:%M:%S')}")
+
