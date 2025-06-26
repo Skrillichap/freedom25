@@ -7,16 +7,31 @@ def frange(start, stop, step):
         yield round(start, 10)
         start += step
 
-def infer_direction(entry, stop_loss):
-    return "Long" if stop_loss < entry else "Short"
+def infer_direction(entry, stop):
+    return "Long" if stop < entry else "Short"
 
-def calculate_ideal_position_size(monetary_risk, sl_distance):
-    if sl_distance == 0:
-        return 0
-    return monetary_risk / sl_distance
+def calculate_trade_details(entry, stop, contribution_pct, balance, target_tp=None, monetary_risk=None):
+    direction = infer_direction(entry, stop)
+    sl_distance = abs(entry - stop)
+    contribution_pct = float(contribution_pct)
+    capital_allocation = round(balance * (contribution_pct / 100), 2)
 
-def capital_required(position_size, price):
-    return position_size * price
+    position_size = round(capital_allocation / entry, 2) if entry != 0 else 0
+    capital_used = round(position_size * entry, 2)
+    risk = round(sl_distance * position_size, 2)
+
+    r_multiple = None
+    if target_tp is not None and sl_distance > 0:
+        r_multiple = round(abs(target_tp - entry) / sl_distance, 2)
+
+    return {
+        "direction": direction,
+        "sl_distance": sl_distance,
+        "position_size": position_size,
+        "capital_used": capital_used,
+        "risk": risk,
+        "r_multiple": r_multiple
+    }
 
 def log_trade_entry(trade_data, balance=10000):
     file_path = "data/trades.csv"
@@ -27,7 +42,7 @@ def log_trade_entry(trade_data, balance=10000):
         "£ Used", "£ Risk", "R-Multiple"
     ]
 
-    # Generate unique trade ID
+    # Generate unique ID
     date_str = datetime.now().strftime("%d%m%Y")
     time_str = trade_data["entry_time"].replace(":", "")
     trade_count = 1
@@ -39,35 +54,30 @@ def log_trade_entry(trade_data, balance=10000):
 
     trade_id = f"{date_str}-{time_str}-{trade_count:05d}"
 
-    # Extract actuals
-    actual_entry = float(trade_data["actual_entry"])
-    actual_stop = float(trade_data["actual_stop"])
-    target_tp = float(trade_data["target_tp"])
-    contribution_pct = float(trade_data["contribution_pct"])
-
-    # Use recalculated values with actual inputs
-    capital_used = round(balance * (contribution_pct / 100), 2)
-    sl_distance = abs(actual_entry - actual_stop)
-    position_size = round(capital_used / sl_distance, 2)
-    risk = round(sl_distance * position_size, 2)
-    r_multiple = round(abs(target_tp - actual_entry) / sl_distance, 2)
+    # Calculate values
+    calc = calculate_trade_details(
+        entry=float(trade_data["actual_entry"]),
+        stop=float(trade_data["actual_stop"]),
+        contribution_pct=float(trade_data["contribution_pct"]),
+        balance=balance,
+        target_tp=float(trade_data["target_tp"])
+    )
 
     row = [
         trade_id,
         trade_data["entry_date"],
         trade_data["entry_time"],
         "PLACEHOLDER",
-        actual_entry,
-        actual_stop,
-        target_tp,
-        contribution_pct,
-        position_size,
-        capital_used,
-        risk,
-        r_multiple
+        trade_data["actual_entry"],
+        trade_data["actual_stop"],
+        trade_data["target_tp"],
+        trade_data["contribution_pct"],
+        calc["position_size"],
+        calc["capital_used"],
+        calc["risk"],
+        calc["r_multiple"]
     ]
 
-    # Write header if new or empty file
     write_headers = not os.path.exists(file_path) or os.stat(file_path).st_size == 0
 
     with open(file_path, "a", newline="") as f:

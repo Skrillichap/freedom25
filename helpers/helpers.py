@@ -1,3 +1,4 @@
+import streamlit as st
 from datetime import datetime
 
 def generate_trade_id():
@@ -17,3 +18,4 @@ def confidence_message(percent):
         return "🔴 High confidence – well-researched"
     else:
         return "🔥 Extreme conviction – ensure tight risk!"
+    
