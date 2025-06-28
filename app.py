@@ -56,6 +56,8 @@ if st.session_state.active_trades:
             st.markdown(f"#### Working on: {tid}")
             ui.render_trade_setup(trade_state, tid)
             ui.render_trade_logger(trade_state, tid)
+            ui.render_trade_live_log(trade_state, tid)
+
 
 # Save session snapshot
 config.save_snapshot({
@@ -64,3 +66,4 @@ config.save_snapshot({
     "max_open_risk": st.session_state.max_open_risk,
     "max_exposure": st.session_state.max_exposure
 })
+

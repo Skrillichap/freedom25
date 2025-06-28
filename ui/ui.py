@@ -4,6 +4,7 @@ import logic.trade as trade
 from datetime import datetime
 from helpers.helpers import confidence_message
 from logic.trade import calculate_trade_details
+from helpers.labels import load_labels
 
 def session_config_panel():
     expanded = not st.session_state.get("session_config_collapsed", False)
@@ -101,3 +102,46 @@ def render_trade_logger(trade_state: dict, trade_id: str):
                     st.error(f"❌ Failed to log trade: {e}")
 
     trade_state["collapsed"]["step3"] = not expanded
+
+def render_trade_live_log(trade_state: dict, trade_id: str):
+    expanded = not trade_state["collapsed"].get("step4", False)
+
+    with st.expander("📘 Step 4: Mid-Trade Notes", expanded=expanded):
+        st.markdown("Use this section to document your mindset, strategy, and instrument.")
+
+        col1, col2 = st.columns(2)
+        labels = load_labels()
+
+        mood = col1.selectbox(
+            "😶 Mood", [""] + labels.get("moods", []),
+            key=f"{trade_id}_mood"
+        )
+        strategy = col2.selectbox(
+            "📐 Strategy", [""] + labels.get("strategies", []),
+            key=f"{trade_id}_strategy"
+        )
+        instrument = st.text_input(
+            "🎯 Instrument", key=f"{trade_id}_instrument"
+        )
+        notes = st.text_area(
+            "📝 Notes", height=150, key=f"{trade_id}_notes"
+        )
+
+        submitted = st.button("🗂️ Save Mid-Trade Log", key=f"{trade_id}_log_live")
+
+        if submitted:
+            try:
+                from logic.trade import update_trade_row
+                update_trade_row(trade_id, {
+                    "Mood": mood,
+                    "Strategy": strategy,
+                    "Instrument": instrument,
+                    "Notes": notes
+                })
+                st.success("✅ Mid-trade details saved.")
+                trade_state["collapsed"]["step4"] = True
+            except Exception as e:
+                st.error(f"❌ Failed to update trade log: {e}")
+
+    # Preserve collapsed state
+    trade_state["collapsed"]["step4"] = not expanded

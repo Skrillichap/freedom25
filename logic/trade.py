@@ -85,3 +85,41 @@ def log_trade_entry(trade_data, balance=10000):
         if write_headers:
             writer.writerow(headers)
         writer.writerow(row)
+
+def update_trade_row(trade_id: str, updates: dict, file_path="data/trades.csv"):
+    """Update existing trade row identified by trade_id with new fields."""
+    import csv
+    import os
+    import tempfile
+
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"{file_path} does not exist")
+
+    updated = False
+    temp_fd, temp_path = tempfile.mkstemp()
+    os.close(temp_fd)
+
+    with open(file_path, "r", newline="", encoding="utf-8") as infile, \
+         open(temp_path, "w", newline="", encoding="utf-8") as outfile:
+
+        reader = csv.DictReader(infile)
+        fieldnames = reader.fieldnames or []
+        
+        # Ensure all update keys are in the header
+        for k in updates.keys():
+            if k not in fieldnames:
+                fieldnames.append(k)
+
+        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for row in reader:
+            if row.get("ID") == trade_id:
+                row.update(updates)
+                updated = True
+            writer.writerow(row)
+
+    os.replace(temp_path, file_path)
+
+    if not updated:
+        raise ValueError(f"Trade ID {trade_id} not found in {file_path}")
