@@ -1,6 +1,6 @@
 {
-    "balance": 20000.0,
+    "balance": 10000.0,
     "risk_percent": 1.0,
-    "max_open_risk": 5.0,
-    "max_exposure": 50.0
+    "max_open_risk": 6.0,
+    "max_exposure": 40.0
 }

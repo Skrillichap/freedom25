@@ -1,14 +1,18 @@
 import os
 import csv
+import tempfile
 from datetime import datetime
+
 
 def frange(start, stop, step):
     while start <= stop:
         yield round(start, 10)
         start += step
 
+
 def infer_direction(entry, stop):
     return "Long" if stop < entry else "Short"
+
 
 def calculate_trade_details(entry, stop, contribution_pct, balance, target_tp=None, monetary_risk=None):
     direction = infer_direction(entry, stop)
@@ -33,28 +37,29 @@ def calculate_trade_details(entry, stop, contribution_pct, balance, target_tp=No
         "r_multiple": r_multiple
     }
 
-def log_trade_entry(trade_data, balance=10000):
+
+def log_trade_entry(trade_data, balance=10000, max_rpt=1.0):
     file_path = "data/trades.csv"
     headers = [
         "ID", "Date", "Time", "Instrument",
         "Actual Entry", "Actual Stop", "Target TP",
         "Capital Allocation (%)", "Position Size",
-        "£ Used", "£ Risk", "R-Multiple"
+        "Used", "Risk", "Balance", "Max RPT (%)", "Actual RPT (%)", "Divergence (%)", "R-Multiple"
     ]
 
-    # Generate unique ID
+    # Generate unique trade ID
     date_str = datetime.now().strftime("%d%m%Y")
     time_str = trade_data["entry_time"].replace(":", "")
     trade_count = 1
 
     if os.path.exists(file_path):
-        with open(file_path, "r", newline="") as f:
+        with open(file_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             trade_count = sum(1 for row in reader if row.get("Date") == trade_data["entry_date"]) + 1
 
     trade_id = f"{date_str}-{time_str}-{trade_count:05d}"
 
-    # Calculate values
+    # Calculate metrics
     calc = calculate_trade_details(
         entry=float(trade_data["actual_entry"]),
         stop=float(trade_data["actual_stop"]),
@@ -63,11 +68,14 @@ def log_trade_entry(trade_data, balance=10000):
         target_tp=float(trade_data["target_tp"])
     )
 
+    actual_rpt_pct = (calc["risk"] / balance) * 100
+    divergence_pct = (actual_rpt_pct / max_rpt * 100) if max_rpt > 0 else 0
+
     row = [
         trade_id,
         trade_data["entry_date"],
         trade_data["entry_time"],
-        "PLACEHOLDER",
+        trade_data.get("instrument", "PLACEHOLDER"),
         trade_data["actual_entry"],
         trade_data["actual_stop"],
         trade_data["target_tp"],
@@ -75,23 +83,26 @@ def log_trade_entry(trade_data, balance=10000):
         calc["position_size"],
         calc["capital_used"],
         calc["risk"],
+        balance,
+        round(max_rpt, 2),
+        round(actual_rpt_pct, 2),
+        round(divergence_pct, 2),
         calc["r_multiple"]
     ]
 
     write_headers = not os.path.exists(file_path) or os.stat(file_path).st_size == 0
 
-    with open(file_path, "a", newline="") as f:
+    with open(file_path, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if write_headers:
             writer.writerow(headers)
         writer.writerow(row)
 
+    return trade_id
+
+
 def update_trade_row(trade_id: str, updates: dict, file_path="data/trades.csv"):
     """Update existing trade row identified by trade_id with new fields."""
-    import csv
-    import os
-    import tempfile
-
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"{file_path} does not exist")
 
@@ -99,12 +110,12 @@ def update_trade_row(trade_id: str, updates: dict, file_path="data/trades.csv"):
     temp_fd, temp_path = tempfile.mkstemp()
     os.close(temp_fd)
 
-    with open(file_path, "r", newline="", encoding="utf-8") as infile, \
+    with open(file_path, "r", newline="", encoding="utf-8", errors="replace") as infile, \
          open(temp_path, "w", newline="", encoding="utf-8") as outfile:
 
         reader = csv.DictReader(infile)
         fieldnames = reader.fieldnames or []
-        
+
         # Ensure all update keys are in the header
         for k in updates.keys():
             if k not in fieldnames:
