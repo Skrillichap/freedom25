@@ -195,3 +195,59 @@ def render_trade_live_log(trade_state: dict, trade_id: str):
 
     # Preserve collapsed state
     trade_state["collapsed"]["step4"] = not expanded
+
+def render_trade_exit_log(trade_state: dict, session_trade_id: str):
+    expanded = not trade_state["collapsed"].get("step5", False)
+
+    # Use trade ID from CSV (from Step 3)
+    csv_trade_id = trade_state["data"].get("trade_id")
+    if not csv_trade_id:
+        st.warning("⚠️ Trade ID not found. Please log the entry in Step 3 first.")
+        return
+
+    with st.expander("✅ Step 5: Finalise Trade", expanded=expanded):
+        st.markdown("Enter final trade outcomes including exit and reflections.")
+
+        labels = load_labels()
+
+        col1, col2 = st.columns(2)
+        with col1:
+            exit_price = st.number_input(f"📉 Exit Price ({csv_trade_id})", format="%.4f", key=f"{csv_trade_id}_exit_price")
+            exit_time = st.text_input(f"⏱️ Exit Time (HH:MM)", value="16:00", key=f"{csv_trade_id}_exit_time")
+        with col2:
+            exit_reason = st.selectbox("🚪 Exit Reason", [""] + labels.get("exit_reasons", []), key=f"{csv_trade_id}_exit_reason")
+            result = st.selectbox("📊 Result", ["Profit", "Loss", "Break-even"], key=f"{csv_trade_id}_result")
+
+        col_notes1, col_notes2 = st.columns(2)
+        what_went_well = col_notes1.text_area("✅ What went well?", height=120, key=f"{csv_trade_id}_went_well")
+        what_to_improve = col_notes2.text_area("🔁 What would you do differently?", height=120, key=f"{csv_trade_id}_improve")
+        closing_notes = st.text_area("📘 Closing Notes", height=100, key=f"{csv_trade_id}_closing_notes")
+
+        if st.button("💾 Finalise and Save Trade", key=f"{csv_trade_id}_save_final"):
+            try:
+                # Get required details
+                actual_entry = float(trade_state["data"].get("actual_entry", 0))
+                position_size = float(trade_state["data"].get("position_size", 0))
+                pnl = (float(exit_price) - actual_entry) * position_size if result == "Profit" else (float(exit_price) - actual_entry) * position_size
+                r_multiple = abs(pnl / trade_state["data"].get("risk", 1)) if trade_state["data"].get("risk", 0) != 0 else 0
+                r_multiple = round(r_multiple, 2)
+
+                trade.update_trade_row(csv_trade_id, {
+                    "Exit Price": exit_price,
+                    "Exit Time": exit_time,
+                    "Exit Reason": exit_reason,
+                    "Result": result,
+                    "P/L": round(pnl, 2),
+                    "Final R-Multiple": r_multiple,
+                    "What Went Well": what_went_well,
+                    "What to Improve": what_to_improve,
+                    "Closing Notes": closing_notes
+                })
+                st.success(f"✅ Trade finalised and saved successfully (ID: {csv_trade_id})")
+                trade_state["collapsed"]["step5"] = True
+
+            except Exception as e:
+                st.error(f"❌ Failed to finalise trade: {e}")
+
+    trade_state["collapsed"]["step5"] = not expanded
+

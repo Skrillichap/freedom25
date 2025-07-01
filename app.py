@@ -57,6 +57,7 @@ if st.session_state.active_trades:
             ui.render_trade_setup(trade_state, tid)
             ui.render_trade_logger(trade_state, tid)
             ui.render_trade_live_log(trade_state, tid)
+            ui.render_trade_exit_log(trade_state, tid)
 
 
 # Save session snapshot
